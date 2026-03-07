@@ -5,14 +5,19 @@ import { PlatformUserEntity } from './entities/platform-user.entity';
 import { PlatformUsersService } from './platform-users.service';
 import { PlatformUsersController } from './platform-users.controller';
 import { PlatformRolesModule } from '../platform-roles/platform-roles.module';
+import { PlatformRolesService } from '../platform-roles/platform-roles.service';
+import { PlatformUserRoleEntity } from '../platform-user-roles/entities/platform-user-role.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PlatformUserEntity]),
+    TypeOrmModule.forFeature([
+      PlatformUserEntity,
+      PlatformUserRoleEntity,
+    ]),
     PlatformRolesModule,
   ],
-  controllers: [PlatformUsersController],
   providers: [PlatformUsersService],
+  controllers: [PlatformUsersController],
   exports: [PlatformUsersService],
 })
 export class PlatformUsersModule {}

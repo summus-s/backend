@@ -59,7 +59,7 @@ import { AuditLogEntity } from './modules/audit-logs/entities/audit-log.entity';
           InviteEntity,
           AuditLogEntity,
         ],
-        synchronize: false,
+        synchronize: true,
         autoLoadEntities: false,
         logging: configService.get<string>('DB_LOGGING') === 'true',
       }),
