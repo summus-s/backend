@@ -15,9 +15,9 @@ import { CreatePlatformUserDto } from './dto/create-platform-user.dto';
 import { UpdatePlatformUserDto } from './dto/update-platform-user.dto';
 import { QueryPlatformUsersDto } from './dto/query-platform-users.dto';
 import { SetPlatformUserStatusDto } from './dto/set-platform-user-status.dto';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { JwtPlatformAuthGuard } from 'src/common/guards/jwt-platform-auth.guard';
-import { PlatformRolesGuard } from 'src/common/guards/platform-roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { JwtPlatformAuthGuard } from '../../common/guards/jwt-platform-auth.guard';
+import { PlatformRolesGuard } from '../../common/guards/platform-roles.guard';
 
 @UseGuards(JwtPlatformAuthGuard, PlatformRolesGuard)
 @Roles('SUPERADMIN')

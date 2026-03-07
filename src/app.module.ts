@@ -28,6 +28,8 @@ import { OrderEntity } from './modules/billing/orders/entities/order.entity';
 import { VerticalTenantEntity } from './modules/vertical-tenants/entities/vertical-tenant.entity';
 import { InviteEntity } from './modules/invites/entities/invite.entity';
 import { AuditLogEntity } from './modules/audit-logs/entities/audit-log.entity';
+import { SuperAdminSeed } from './database/seeds/super-admin.seed';
+
 
 @Module({
   imports: [
@@ -78,6 +80,9 @@ import { AuditLogEntity } from './modules/audit-logs/entities/audit-log.entity';
     InvitesModule,
     AuditLogsModule,
     BillingModule,
+  ],
+  providers: [
+    SuperAdminSeed,
   ],
 })
 export class AppModule {}
