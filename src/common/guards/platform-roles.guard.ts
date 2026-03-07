@@ -5,18 +5,18 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { PlatformRoleKey } from '../../modules/platform-roles/enums/platform-role-key.enum';
 
 @Injectable()
 export class PlatformRolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<PlatformRoleKey[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
@@ -25,13 +25,18 @@ export class PlatformRolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    const userRoles: PlatformRoleKey[] =
-      user?.roles?.map((role: { key: PlatformRoleKey }) => role.key) ?? [];
+    if (!user) {
+      throw new ForbiddenException('Usuario no autenticado');
+    }
 
-    const hasRequiredRole = requiredRoles.some((role) => userRoles.includes(role));
+    const userRoles: string[] = Array.isArray(user.roles)
+      ? user.roles.map((role: any) => role.key ?? role)
+      : [];
 
-    if (!hasRequiredRole) {
-      throw new ForbiddenException('No tienes permisos para esta acción');
+    const hasRole = requiredRoles.some((role) => userRoles.includes(role));
+
+    if (!hasRole) {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción');
     }
 
     return true;

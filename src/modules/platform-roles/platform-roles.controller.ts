@@ -6,12 +6,18 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { PlatformRolesService } from './platform-roles.service';
 import { CreatePlatformRoleDto } from './dto/create-platform-role.dto';
 import { UpdatePlatformRoleDto } from './dto/update-platform-role.dto';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { JwtPlatformAuthGuard } from 'src/common/guards/jwt-platform-auth.guard';
+import { PlatformRolesGuard } from 'src/common/guards/platform-roles.guard';
 
+@UseGuards(JwtPlatformAuthGuard, PlatformRolesGuard)
+@Roles('SUPERADMIN')
 @Controller('platform-roles')
 export class PlatformRolesController {
   constructor(private readonly platformRolesService: PlatformRolesService) {}

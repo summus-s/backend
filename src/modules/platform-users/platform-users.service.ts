@@ -242,4 +242,11 @@ export class PlatformUsersService {
     const user = await this.findById(id);
     await this.platformUsersRepo.remove(user);
   }
+
+  async updatePassword(userId: string, newPasswordHash: string): Promise<void> {
+    const user = await this.findById(userId);
+    user.passwordHash = newPasswordHash;
+    user.refreshTokenHash = null;
+    await this.platformUsersRepo.save(user);
+  }
 }
