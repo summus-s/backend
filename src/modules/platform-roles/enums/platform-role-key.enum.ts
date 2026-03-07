@@ -1,0 +1,6 @@
+export enum PlatformRoleKey {
+  SUPERADMIN = 'SUPERADMIN',
+  SALES = 'SALES',
+  SUPPORT = 'SUPPORT',
+  ACCOUNTING = 'ACCOUNTING',
+}
