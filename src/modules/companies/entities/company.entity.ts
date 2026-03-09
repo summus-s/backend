@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -11,7 +12,8 @@ import { CompanyStatus } from '../enums/company-status.enum';
 import { CompanyContactEntity } from '../../company-contacts/entities/company-contact.entity';
 import { CompanyVerticalEntity } from '../../company-verticals/entities/company-vertical.entity';
 
-@Entity({ name: 'companies' })
+@Entity('companies')
+@Index('UQ_companies_tax_id', ['taxId'], { unique: true })
 export class CompanyEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -19,11 +21,26 @@ export class CompanyEntity {
   @Column({ type: 'varchar', length: 120 })
   name: string;
 
-  @Column({ name: 'legal_name', type: 'varchar', length: 150, nullable: true })
+  @Column({ type: 'varchar', length: 180, nullable: true })
   legalName: string | null;
 
-  @Column({ name: 'tax_id', type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 60, nullable: true })
   taxId: string | null;
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  email: string | null;
+
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  phone: string | null;
+
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  country: string | null;
+
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  city: string | null;
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  address: string | null;
 
   @Column({
     type: 'enum',
@@ -32,18 +49,21 @@ export class CompanyEntity {
   })
   status: CompanyStatus;
 
-  @Column({ name: 'suspended_reason', type: 'varchar', length: 200, nullable: true })
-  suspendedReason: string | null;
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
 
   @OneToMany(() => CompanyContactEntity, (contact) => contact.company)
   contacts: CompanyContactEntity[];
 
-  @OneToMany(() => CompanyVerticalEntity, (companyVertical) => companyVertical.company)
+  @OneToMany(
+    () => CompanyVerticalEntity,
+    (companyVertical) => companyVertical.company,
+  )
   companyVerticals: CompanyVerticalEntity[];
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn()
   updatedAt: Date;
 }

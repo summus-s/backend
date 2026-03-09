@@ -62,6 +62,7 @@ import { SuperAdminSeed } from './database/seeds/super-admin.seed';
           AuditLogEntity,
         ],
         synchronize: true,
+        dropSchema: false,
         autoLoadEntities: false,
         logging: configService.get<string>('DB_LOGGING') === 'true',
       }),
