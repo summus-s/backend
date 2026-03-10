@@ -5,11 +5,12 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 import { CompanyEntity } from '../../companies/entities/company.entity';
 
-@Entity({ name: 'company_contacts' })
+@Entity('company_contacts')
 export class CompanyContactEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -18,7 +19,6 @@ export class CompanyContactEntity {
   companyId: string;
 
   @ManyToOne(() => CompanyEntity, (company) => company.contacts, {
-    nullable: false,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'company_id' })
@@ -30,12 +30,24 @@ export class CompanyContactEntity {
   @Column({ type: 'varchar', length: 120 })
   email: string;
 
-  @Column({ type: 'varchar', length: 40, nullable: true })
+  @Column({ type: 'varchar', length: 30, nullable: true })
   phone: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  position: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  department: string | null;
 
   @Column({ name: 'is_primary', type: 'boolean', default: false })
   isPrimary: boolean;
 
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }
