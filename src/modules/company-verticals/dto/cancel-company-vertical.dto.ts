@@ -1,8 +1,8 @@
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
-export class ActivateCompanyVerticalDto {
+export class CancelCompanyVerticalDto {
   @IsOptional()
   @IsString()
   @MaxLength(300)
-  notes?: string;
+  reason?: string;
 }

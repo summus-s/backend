@@ -2,7 +2,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -14,13 +13,14 @@ import {
 import { CompanyEntity } from '../../companies/entities/company.entity';
 import { VerticalEntity } from '../../catalog/verticals/entities/vertical.entity';
 import { CompanyVerticalStatus } from '../enums/company-vertical-status.enum';
-import { SubscriptionEntity } from '../../billing/subscriptions/entities/subscription.entity';
+import { BillingCycle } from '../enums/billing-cycle.enum';
+import { ProvisioningStatus } from '../enums/provisioning-status.enum';
 import { OrderEntity } from '../../billing/orders/entities/order.entity';
-import { VerticalTenantEntity } from '../../vertical-tenants/entities/vertical-tenant.entity';
+import { SubscriptionEntity } from '../../billing/subscriptions/entities/subscription.entity';
 import { InviteEntity } from '../../invites/entities/invite.entity';
+import { VerticalTenantEntity } from '../../vertical-tenants/entities/vertical-tenant.entity';
 
-@Entity({ name: 'company_verticals' })
-@Index(['companyId', 'verticalId'], { unique: true })
+@Entity('company_verticals')
 export class CompanyVerticalEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -28,20 +28,22 @@ export class CompanyVerticalEntity {
   @Column({ name: 'company_id', type: 'uuid' })
   companyId: string;
 
-  @Column({ name: 'vertical_id', type: 'uuid' })
-  verticalId: string;
-
   @ManyToOne(() => CompanyEntity, (company) => company.companyVerticals, {
-    nullable: false,
-    onDelete: 'CASCADE',
+    onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'company_id' })
   company: CompanyEntity;
 
-  @ManyToOne(() => VerticalEntity, (vertical) => vertical.companyVerticals, {
-    nullable: false,
-    onDelete: 'RESTRICT',
-  })
+  @Column({ name: 'vertical_id', type: 'uuid' })
+  verticalId: string;
+
+  @ManyToOne(
+    () => VerticalEntity,
+    (vertical) => vertical.companyVerticals,
+    {
+      onDelete: 'RESTRICT',
+    },
+  )
   @JoinColumn({ name: 'vertical_id' })
   vertical: VerticalEntity;
 
@@ -52,23 +54,70 @@ export class CompanyVerticalEntity {
   })
   status: CompanyVerticalStatus;
 
-  @Column({ name: 'activated_at', type: 'timestamp', nullable: true })
-  activatedAt: Date | null;
+  @Column({ name: 'plan_name', type: 'varchar', length: 120, nullable: true })
+  planName: string | null;
 
-  @Column({ name: 'suspended_reason', type: 'varchar', length: 200, nullable: true })
-  suspendedReason: string | null;
+  @Column({
+    name: 'billing_cycle',
+    type: 'enum',
+    enum: BillingCycle,
+    nullable: true,
+  })
+  billingCycle: BillingCycle | null;
 
-  @OneToOne(() => SubscriptionEntity, (subscription) => subscription.companyVertical)
-  subscription: SubscriptionEntity | null;
+  @Column({ name: 'starts_at', type: 'timestamptz', nullable: true })
+  startsAt: Date | null;
+
+  @Column({ name: 'ends_at', type: 'timestamptz', nullable: true })
+  endsAt: Date | null;
+
+  @Column({
+    name: 'external_company_id',
+    type: 'varchar',
+    length: 120,
+    nullable: true,
+  })
+  externalCompanyId: string | null;
+
+  @Column({
+    name: 'external_tenant_id',
+    type: 'varchar',
+    length: 120,
+    nullable: true,
+  })
+  externalTenantId: string | null;
+
+  @Column({
+    name: 'provisioning_status',
+    type: 'enum',
+    enum: ProvisioningStatus,
+    default: ProvisioningStatus.NOT_SENT,
+  })
+  provisioningStatus: ProvisioningStatus;
+
+  @Column({ name: 'provisioned_at', type: 'timestamptz', nullable: true })
+  provisionedAt: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
 
   @OneToMany(() => OrderEntity, (order) => order.companyVertical)
   orders: OrderEntity[];
 
-  @OneToOne(() => VerticalTenantEntity, (tenant) => tenant.companyVertical)
-  verticalTenant: VerticalTenantEntity | null;
+  @OneToOne(
+    () => SubscriptionEntity,
+    (subscription) => subscription.companyVertical,
+  )
+  subscription: SubscriptionEntity | null;
 
   @OneToMany(() => InviteEntity, (invite) => invite.companyVertical)
   invites: InviteEntity[];
+
+  @OneToOne(
+    () => VerticalTenantEntity,
+    (verticalTenant) => verticalTenant.companyVertical,
+  )
+  verticalTenant: VerticalTenantEntity | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

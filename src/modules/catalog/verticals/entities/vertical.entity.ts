@@ -7,7 +7,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { VerticalKey } from '../enums/vertical-key.enum';
 import { CompanyVerticalEntity } from '../../../company-verticals/entities/company-vertical.entity';
 import { PlanEntity } from '../../../billing/plans/entities/plan.entity';
 
@@ -16,12 +15,8 @@ export class VerticalEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({
-    type: 'enum',
-    enum: VerticalKey,
-    unique: true,
-  })
-  key: VerticalKey;
+  @Column({ type: 'varchar', length: 40, unique: true })
+  key: string;
 
   @Column({ type: 'varchar', length: 80 })
   name: string;
@@ -32,7 +27,7 @@ export class VerticalEntity {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
-  @Column({ name: 'marketing_path', type: 'varchar', length: 120 })
+  @Column({ name: 'marketing_path', type: 'varchar', length: 120, unique: true })
   marketingPath: string;
 
   @Column({ name: 'app_base_url', type: 'varchar', length: 200 })
@@ -41,7 +36,10 @@ export class VerticalEntity {
   @Column({ name: 'api_base_url', type: 'varchar', length: 200, nullable: true })
   apiBaseUrl: string | null;
 
-  @OneToMany(() => CompanyVerticalEntity, (companyVertical) => companyVertical.vertical)
+  @OneToMany(
+    () => CompanyVerticalEntity,
+    (companyVertical) => companyVertical.vertical,
+  )
   companyVerticals: CompanyVerticalEntity[];
 
   @OneToMany(() => PlanEntity, (plan) => plan.vertical)
