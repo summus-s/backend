@@ -36,6 +36,14 @@ export class VerticalEntity {
   @Column({ name: 'api_base_url', type: 'varchar', length: 200, nullable: true })
   apiBaseUrl: string | null;
 
+  @Column({
+    name: 'provisioning_api_key',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  provisioningApiKey: string | null;
+
   @OneToMany(
     () => CompanyVerticalEntity,
     (companyVertical) => companyVertical.vertical,

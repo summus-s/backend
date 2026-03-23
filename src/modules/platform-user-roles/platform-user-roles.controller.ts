@@ -1,12 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
 import { PlatformUserRolesService } from './platform-user-roles.service';
-import { AssignPlatformRoleDto } from './dto/assign-platform-role.dto';
-import { RemovePlatformRoleDto } from './dto/remove-platform-role.dto';
+import { CreatePlatformUserRoleDto } from './dto/create-platform-user-role.dto';
+import { QueryPlatformUserRolesDto } from './dto/query-platform-user-roles.dto';
+import { RevokePlatformUserRoleDto } from './dto/revoke-platform-user-role.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtPlatformAuthGuard } from '../../common/guards/jwt-platform-auth.guard';
 import { PlatformRolesGuard } from '../../common/guards/platform-roles.guard';
-
 
 @UseGuards(JwtPlatformAuthGuard, PlatformRolesGuard)
 @Roles('SUPERADMIN')
@@ -17,17 +26,27 @@ export class PlatformUserRolesController {
   ) {}
 
   @Post()
-  assignRole(@Body() assignDto: AssignPlatformRoleDto) {
-    return this.platformUserRolesService.assignRole(assignDto);
+  create(@Body() createDto: CreatePlatformUserRoleDto) {
+    return this.platformUserRolesService.create(createDto);
   }
 
-  @Delete()
-  removeRole(@Body() removeDto: RemovePlatformRoleDto) {
-    return this.platformUserRolesService.removeRole(removeDto);
+  @Get()
+  findAll(@Query() queryDto: QueryPlatformUserRolesDto) {
+    return this.platformUserRolesService.findAll(queryDto);
   }
 
-  @Get('user/:userId')
-  findRolesByUser(@Param('userId') userId: string) {
-    return this.platformUserRolesService.findRolesByUserId(userId);
+  @Get('user/:platformUserId')
+  findByUserId(@Param('platformUserId') platformUserId: string) {
+    return this.platformUserRolesService.findByUserId(platformUserId);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.platformUserRolesService.findById(id);
+  }
+
+  @Patch(':id/revoke')
+  revoke(@Param('id') id: string, @Body() dto: RevokePlatformUserRoleDto) {
+    return this.platformUserRolesService.revoke(id, dto);
   }
 }

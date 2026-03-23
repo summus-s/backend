@@ -34,5 +34,6 @@ export class CreateCompanyVerticalDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   notes?: string;
 }

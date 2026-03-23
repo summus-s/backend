@@ -4,5 +4,5 @@ export class ActivateCompanyVerticalDto {
   @IsOptional()
   @IsString()
   @MaxLength(300)
-  notes?: string;
+  reason?: string;
 }

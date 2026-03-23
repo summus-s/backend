@@ -10,6 +10,9 @@ import { PlatformRoleEntity } from './entities/platform-role.entity';
 import { CreatePlatformRoleDto } from './dto/create-platform-role.dto';
 import { UpdatePlatformRoleDto } from './dto/update-platform-role.dto';
 import { PlatformRoleKey } from './enums/platform-role-key.enum';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { PaginatedResponse } from '../../common/interfaces/paginated-response.interface';
+import { getPagination } from '../../common/utils/pagination.util';
 
 @Injectable()
 export class PlatformRolesService {
@@ -35,10 +38,18 @@ export class PlatformRolesService {
     return this.platformRolesRepo.save(role);
   }
 
-  async findAll(): Promise<PlatformRoleEntity[]> {
-    return this.platformRolesRepo.find({
-      order: { name: 'ASC' },
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResponse<PlatformRoleEntity>> {
+    const { page, limit, skip } = getPagination(paginationDto);
+
+    const [items, total] = await this.platformRolesRepo.findAndCount({
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
     });
+
+    return { items, total, page, limit };
   }
 
   async findById(id: string): Promise<PlatformRoleEntity> {
@@ -51,11 +62,15 @@ export class PlatformRolesService {
     return role;
   }
 
-  async findByKey(key: PlatformRoleKey): Promise<PlatformRoleEntity> {
-    const role = await this.platformRolesRepo.findOne({ where: { key } });
+  async findByKey(key: string): Promise<PlatformRoleEntity> {
+    const normalizedKey = key.trim().toUpperCase() as PlatformRoleKey;
+
+    const role = await this.platformRolesRepo.findOne({
+      where: { key: normalizedKey },
+    });
 
     if (!role) {
-      throw new NotFoundException(`Rol ${key} no encontrado`);
+      throw new NotFoundException(`Rol ${normalizedKey} no encontrado`);
     }
 
     return role;

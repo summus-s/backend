@@ -1,8 +1,15 @@
-import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
-import { CompanyVerticalStatus } from '../enums/company-vertical-status.enum';
-import { ProvisioningStatus } from '../enums/provisioning-status.enum';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
-export class QueryCompanyVerticalsDto {
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { CompanyVerticalStatus } from '../enums/company-vertical-status.enum';
+
+export class QueryCompanyVerticalsDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   companyId?: string;
@@ -14,10 +21,6 @@ export class QueryCompanyVerticalsDto {
   @IsOptional()
   @IsEnum(CompanyVerticalStatus)
   status?: CompanyVerticalStatus;
-
-  @IsOptional()
-  @IsEnum(ProvisioningStatus)
-  provisioningStatus?: ProvisioningStatus;
 
   @IsOptional()
   @IsString()

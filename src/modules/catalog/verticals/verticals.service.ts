@@ -37,7 +37,7 @@ export class VerticalsService {
     return normalized.startsWith('/') ? normalized : `/${normalized}`;
   }
 
-  private normalizeUrl(value?: string | null): string | null {
+  private normalizeNullableString(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
   }
@@ -79,7 +79,10 @@ export class VerticalsService {
       isActive: createDto.isActive ?? true,
       marketingPath,
       appBaseUrl: createDto.appBaseUrl.trim(),
-      apiBaseUrl: this.normalizeUrl(createDto.apiBaseUrl),
+      apiBaseUrl: this.normalizeNullableString(createDto.apiBaseUrl),
+      provisioningApiKey: this.normalizeNullableString(
+        createDto.provisioningApiKey,
+      ),
     });
 
     return this.verticalsRepo.save(vertical);
@@ -196,7 +199,13 @@ export class VerticalsService {
     }
 
     if (updateDto.apiBaseUrl !== undefined) {
-      vertical.apiBaseUrl = this.normalizeUrl(updateDto.apiBaseUrl);
+      vertical.apiBaseUrl = this.normalizeNullableString(updateDto.apiBaseUrl);
+    }
+
+    if (updateDto.provisioningApiKey !== undefined) {
+      vertical.provisioningApiKey = this.normalizeNullableString(
+        updateDto.provisioningApiKey,
+      );
     }
 
     return this.verticalsRepo.save(vertical);

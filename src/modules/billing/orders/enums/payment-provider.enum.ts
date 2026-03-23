@@ -1,4 +1,5 @@
 export enum PaymentProvider {
-  MERCADOPAGO = 'MERCADOPAGO',
   STRIPE = 'STRIPE',
+  MERCADOPAGO = 'MERCADOPAGO',
+  MANUAL = 'MANUAL',
 }

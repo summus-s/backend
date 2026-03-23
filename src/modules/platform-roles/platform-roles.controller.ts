@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 
 import { PlatformRolesService } from './platform-roles.service';
@@ -15,6 +16,7 @@ import { UpdatePlatformRoleDto } from './dto/update-platform-role.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtPlatformAuthGuard } from '../../common/guards/jwt-platform-auth.guard';
 import { PlatformRolesGuard } from '../../common/guards/platform-roles.guard';
+import { PaginationDto } from '../../common/dto/pagination.dto'
 
 @UseGuards(JwtPlatformAuthGuard, PlatformRolesGuard)
 @Roles('SUPERADMIN')
@@ -28,8 +30,8 @@ export class PlatformRolesController {
   }
 
   @Get()
-  findAll() {
-    return this.platformRolesService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.platformRolesService.findAll(paginationDto);
   }
 
   @Get(':id')

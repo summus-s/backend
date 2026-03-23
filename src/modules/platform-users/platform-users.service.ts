@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -61,8 +62,14 @@ export class PlatformUsersService {
 
       const assignments = roles.map((role) =>
         this.platformUserRolesRepo.create({
-          userId: savedUser.id,
-          roleId: role.id,
+          platformUserId: savedUser.id,
+          platformRoleId: role.id,
+          companyVerticalId: null,
+          isActive: true,
+          assignedAt: new Date(),
+          revokedAt: null,
+          statusReason: 'Asignación inicial de usuario',
+          notes: null,
         }),
       );
 
@@ -92,17 +99,14 @@ export class PlatformUsersService {
     if (queryDto?.search) {
       const search = `%${queryDto.search.trim()}%`;
 
-      where.push(
-        { fullName: ILike(search) },
-        { email: ILike(search) },
-      );
+      where.push({ fullName: ILike(search) }, { email: ILike(search) });
     }
 
     const users = await this.platformUsersRepo.find({
       where: where.length ? where : undefined,
       relations: {
         platformUserRoles: {
-          role: true,
+          platformRole: true,
         },
       },
       order: {
@@ -113,7 +117,7 @@ export class PlatformUsersService {
     if (queryDto?.roleKey) {
       return users.filter((user) =>
         user.platformUserRoles?.some(
-          (item) => item.role?.key === queryDto.roleKey,
+          (item) => item.platformRole?.key === queryDto.roleKey,
         ),
       );
     }
@@ -126,7 +130,7 @@ export class PlatformUsersService {
       where: { id },
       relations: {
         platformUserRoles: {
-          role: true,
+          platformRole: true,
         },
       },
     });
@@ -143,7 +147,7 @@ export class PlatformUsersService {
       where: { email: this.normalizeEmail(email) },
       relations: {
         platformUserRoles: {
-          role: true,
+          platformRole: true,
         },
       },
     });
@@ -196,12 +200,18 @@ export class PlatformUsersService {
         updateDto.roleKeys,
       );
 
-      await this.platformUserRolesRepo.delete({ userId: user.id });
+      await this.platformUserRolesRepo.delete({ platformUserId: user.id });
 
       const assignments = roles.map((role) =>
         this.platformUserRolesRepo.create({
-          userId: user.id,
-          roleId: role.id,
+          platformUserId: user.id,
+          platformRoleId: role.id,
+          companyVerticalId: null,
+          isActive: true,
+          assignedAt: new Date(),
+          revokedAt: null,
+          statusReason: 'Reasignación de roles de usuario',
+          notes: null,
         }),
       );
 
@@ -248,5 +258,31 @@ export class PlatformUsersService {
     user.passwordHash = newPasswordHash;
     user.refreshTokenHash = null;
     await this.platformUsersRepo.save(user);
+  }
+
+  async createFromInvite(input: {
+    email: string;
+    password: string;
+    fullName: string;
+  }): Promise<PlatformUserEntity> {
+    const normalizedEmail = this.normalizeEmail(input.email);
+
+    const existing = await this.findByEmail(normalizedEmail);
+
+    if (existing) {
+      throw new BadRequestException('Ya existe un usuario con este email');
+    }
+
+    const passwordHash = await CryptoUtil.hashPassword(input.password);
+
+    const user = this.platformUsersRepo.create({
+      email: normalizedEmail,
+      passwordHash,
+      fullName: input.fullName.trim(),
+      status: PlatformUserStatus.ACTIVE,
+    });
+
+    const savedUser = await this.platformUsersRepo.save(user);
+    return this.findById(savedUser.id);
   }
 }

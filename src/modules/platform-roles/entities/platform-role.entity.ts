@@ -25,7 +25,10 @@ export class PlatformRoleEntity {
   @Column({ type: 'varchar', length: 80 })
   name: string;
 
-  @OneToMany(() => PlatformUserRoleEntity, (platformUserRole) => platformUserRole.role)
+  @OneToMany(
+    () => PlatformUserRoleEntity,
+    (platformUserRole) => platformUserRole.platformRole,
+  )
   platformUserRoles: PlatformUserRoleEntity[];
 
   @CreateDateColumn({ name: 'created_at' })

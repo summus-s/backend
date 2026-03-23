@@ -15,11 +15,11 @@ import { UpdateCompanyVerticalDto } from './dto/update-company-vertical.dto';
 import { QueryCompanyVerticalsDto } from './dto/query-company-verticals.dto';
 import { SuspendCompanyVerticalDto } from './dto/suspend-company-vertical.dto';
 import { CancelCompanyVerticalDto } from './dto/cancel-company-vertical.dto';
+import { ActivateCompanyVerticalDto } from './dto/activate-company-vertical.dto';
+import { ReactivateCompanyVerticalDto } from './dto/reactivate-company-vertical.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtPlatformAuthGuard } from '../../common/guards/jwt-platform-auth.guard';
 import { PlatformRolesGuard } from '../../common/guards/platform-roles.guard';
-import { ActivateCompanyVerticalDto } from './dto/activate-company-vertical.dto';
-
 
 @UseGuards(JwtPlatformAuthGuard, PlatformRolesGuard)
 @Roles('SUPERADMIN')
@@ -44,6 +44,11 @@ export class CompanyVerticalsController {
     return this.companyVerticalsService.findByCompanyId(companyId);
   }
 
+  @Get('vertical/:verticalId')
+  findByVertical(@Param('verticalId') verticalId: string) {
+    return this.companyVerticalsService.findByVerticalId(verticalId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.companyVerticalsService.findById(id);
@@ -60,9 +65,9 @@ export class CompanyVerticalsController {
   @Patch(':id/activate')
   activate(
     @Param('id') id: string,
-    @Body() _activateDto: ActivateCompanyVerticalDto,
+    @Body() activateDto: ActivateCompanyVerticalDto,
   ) {
-    return this.companyVerticalsService.activate(id);
+    return this.companyVerticalsService.activate(id, activateDto);
   }
 
   @Patch(':id/suspend')
@@ -80,5 +85,12 @@ export class CompanyVerticalsController {
   ) {
     return this.companyVerticalsService.cancel(id, cancelDto);
   }
-  
+
+  @Patch(':id/reactivate')
+  reactivate(
+    @Param('id') id: string,
+    @Body() reactivateDto: ReactivateCompanyVerticalDto,
+  ) {
+    return this.companyVerticalsService.reactivate(id, reactivateDto);
+  }
 }

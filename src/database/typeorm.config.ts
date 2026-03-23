@@ -39,7 +39,8 @@ export const getTypeOrmConfig = (
     InviteEntity,
     AuditLogEntity,
   ],
-  synchronize: true,
+  synchronize: false,
+  dropSchema: false,
   autoLoadEntities: false,
-  logging: true,
+  logging: configService.get<string>('DB_LOGGING') === 'true',
 });

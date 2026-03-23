@@ -53,4 +53,9 @@ export class CreateVerticalDto {
   })
   @MaxLength(200)
   apiBaseUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  provisioningApiKey?: string;
 }

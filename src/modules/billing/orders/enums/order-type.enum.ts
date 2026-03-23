@@ -1,0 +1,7 @@
+export enum OrderType {
+  INITIAL = 'INITIAL',
+  RENEWAL = 'RENEWAL',
+  UPGRADE = 'UPGRADE',
+  DOWNGRADE = 'DOWNGRADE',
+  MANUAL = 'MANUAL',
+}

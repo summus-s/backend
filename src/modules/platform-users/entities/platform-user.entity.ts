@@ -59,7 +59,10 @@ export class PlatformUserEntity {
   })
   lastLoginAt: Date | null;
 
-  @OneToMany(() => PlatformUserRoleEntity, (platformUserRole) => platformUserRole.user)
+  @OneToMany(
+    () => PlatformUserRoleEntity,
+    (platformUserRole) => platformUserRole.platformUser,
+  )
   platformUserRoles: PlatformUserRoleEntity[];
 
   @OneToMany(() => AuditLogEntity, (auditLog) => auditLog.actorUser)

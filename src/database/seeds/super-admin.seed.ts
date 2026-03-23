@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import { DataSource, IsNull } from 'typeorm';
 
 import { PlatformUserEntity } from '../../modules/platform-users/entities/platform-user.entity';
 import { PlatformUserStatus } from '../../modules/platform-users/enums/platform-user-status.enum';
 import { PlatformRoleEntity } from '../../modules/platform-roles/entities/platform-role.entity';
 import { PlatformRoleKey } from '../../modules/platform-roles/enums/platform-role-key.enum';
 import { PlatformUserRoleEntity } from '../../modules/platform-user-roles/entities/platform-user-role.entity';
+import { CryptoUtil } from '../../common/utils/crypto.util';
 
 @Injectable()
 export class SuperAdminSeed {
@@ -51,7 +51,7 @@ export class SuperAdminSeed {
     });
 
     if (!user) {
-      const passwordHash = await bcrypt.hash(password, 10);
+      const passwordHash = await CryptoUtil.hashPassword(password);
 
       user = userRepo.create({
         email,
@@ -68,21 +68,30 @@ export class SuperAdminSeed {
 
     const existingUserRole = await userRoleRepo.findOne({
       where: {
-        userId: user.id,
-        roleId: superAdminRole.id,
+        platformUserId: user.id,
+        platformRoleId: superAdminRole.id,
+        companyVerticalId: IsNull(),
       },
     });
 
     if (!existingUserRole) {
       const userRole = userRoleRepo.create({
-        userId: user.id,
-        roleId: superAdminRole.id,
+        platformUserId: user.id,
+        platformRoleId: superAdminRole.id,
+        companyVerticalId: null,
+        isActive: true,
+        assignedAt: new Date(),
+        revokedAt: null,
+        statusReason: 'Asignación inicial de superadmin',
+        notes: null,
       });
 
       await userRoleRepo.save(userRole);
       this.logger.log(`Rol ${superAdminRole.key} asignado a ${email}`);
     } else {
-      this.logger.log(`El usuario ${email} ya tiene el rol ${superAdminRole.key}`);
+      this.logger.log(
+        `El usuario ${email} ya tiene el rol ${superAdminRole.key}`,
+      );
     }
   }
 }

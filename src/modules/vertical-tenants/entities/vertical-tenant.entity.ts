@@ -6,12 +6,13 @@ import {
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 import { CompanyVerticalEntity } from '../../company-verticals/entities/company-vertical.entity';
-import { ProvisionStatus } from '../enums/provision-status.enum';
+import { VerticalTenantStatus } from '../enums/vertical-tenant-status.enum';
 
-@Entity({ name: 'vertical_tenants' })
+@Entity('vertical_tenants')
 @Index(['companyVerticalId'], { unique: true })
 export class VerticalTenantEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -20,33 +21,128 @@ export class VerticalTenantEntity {
   @Column({ name: 'company_vertical_id', type: 'uuid' })
   companyVerticalId: string;
 
-  @OneToOne(() => CompanyVerticalEntity, (companyVertical) => companyVertical.verticalTenant, {
-    nullable: false,
-    onDelete: 'CASCADE',
-  })
+  @OneToOne(
+    () => CompanyVerticalEntity,
+    (companyVertical) => companyVertical.verticalTenant,
+    { onDelete: 'RESTRICT' },
+  )
   @JoinColumn({ name: 'company_vertical_id' })
   companyVertical: CompanyVerticalEntity;
 
-  @Column({ name: 'external_tenant_id', type: 'varchar', length: 120 })
-  externalTenantId: string;
-
-  @Column({ name: 'external_workspace', type: 'varchar', length: 120, nullable: true })
-  externalWorkspace: string | null;
+  @Column({
+    type: 'enum',
+    enum: VerticalTenantStatus,
+    default: VerticalTenantStatus.PENDING,
+  })
+  status: VerticalTenantStatus;
 
   @Column({
-    name: 'provision_status',
-    type: 'enum',
-    enum: ProvisionStatus,
-    default: ProvisionStatus.PENDING,
+    name: 'external_tenant_id',
+    type: 'varchar',
+    length: 150,
+    nullable: true,
   })
-  provisionStatus: ProvisionStatus;
+  externalTenantId: string | null;
 
-  @Column({ name: 'provisioned_at', type: 'timestamp', nullable: true })
+  @Column({
+    name: 'external_company_id',
+    type: 'varchar',
+    length: 150,
+    nullable: true,
+  })
+  externalCompanyId: string | null;
+
+  @Column({
+    name: 'external_workspace_id',
+    type: 'varchar',
+    length: 150,
+    nullable: true,
+  })
+  externalWorkspaceId: string | null;
+
+  @Column({
+    name: 'external_url',
+    type: 'varchar',
+    length: 300,
+    nullable: true,
+  })
+  externalUrl: string | null;
+
+  @Column({
+    name: 'sync_reference',
+    type: 'varchar',
+    length: 150,
+    nullable: true,
+  })
+  syncReference: string | null;
+
+  @Column({
+    name: 'last_request_payload',
+    type: 'jsonb',
+    nullable: true,
+  })
+  lastRequestPayload: Record<string, unknown> | null;
+
+  @Column({
+    name: 'last_response_payload',
+    type: 'jsonb',
+    nullable: true,
+  })
+  lastResponsePayload: Record<string, unknown> | null;
+
+  @Column({
+    name: 'last_error_code',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  lastErrorCode: string | null;
+
+  @Column({
+    name: 'last_error_message',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  lastErrorMessage: string | null;
+
+  @Column({
+    name: 'provisioning_attempts',
+    type: 'int',
+    default: 0,
+  })
+  provisioningAttempts: number;
+
+  @Column({
+    name: 'last_attempt_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  lastAttemptAt: Date | null;
+
+  @Column({
+    name: 'provisioned_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
   provisionedAt: Date | null;
 
-  @Column({ name: 'last_error', type: 'varchar', length: 200, nullable: true })
-  lastError: string | null;
+  @Column({
+    name: 'suspended_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  suspendedAt: Date | null;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  notes: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

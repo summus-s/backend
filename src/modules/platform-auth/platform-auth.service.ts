@@ -29,36 +29,34 @@ export class PlatformAuthService {
     private readonly configService: ConfigService,
   ) {}
 
+  private getRequiredConfig(key: string): string {
+    const value = this.configService.get<string>(key);
+
+    if (!value) {
+      throw new Error(`${key} is not defined`);
+    }
+
+    return value;
+  }
+
   private getAccessTokenSecret(): string {
-    return (
-      this.configService.get<string>('JWT_ACCESS_SECRET') ??
-      'access-secret-dev'
-    );
+    return this.getRequiredConfig('JWT_ACCESS_SECRET');
   }
 
   private getRefreshTokenSecret(): string {
-    return (
-      this.configService.get<string>('JWT_REFRESH_SECRET') ??
-      'refresh-secret-dev'
-    );
+    return this.getRequiredConfig('JWT_REFRESH_SECRET');
   }
 
   private getAccessTokenExpiresIn(): StringValue {
-    return (
-      (this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') ??
-        '15m') as StringValue
-    );
+    return this.getRequiredConfig('JWT_ACCESS_EXPIRES_IN') as StringValue;
   }
 
   private getRefreshTokenExpiresIn(): StringValue {
-    return (
-      (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ??
-        '7d') as StringValue
-    );
+    return this.getRequiredConfig('JWT_REFRESH_EXPIRES_IN') as StringValue;
   }
 
   private extractRoles(user: PlatformUserEntity): string[] {
-    return user.platformUserRoles?.map((item) => item.role.key) ?? [];
+    return user.platformUserRoles?.map((item) => item.platformRole.key) ?? [];
   }
 
   private sanitizeUser(user: PlatformUserEntity) {
@@ -81,14 +79,19 @@ export class PlatformAuthService {
       roles: this.extractRoles(user),
     };
 
+    const accessTokenSecret = this.getAccessTokenSecret();
+    const refreshTokenSecret = this.getRefreshTokenSecret();
+    const accessTokenExpiresIn = this.getAccessTokenExpiresIn();
+    const refreshTokenExpiresIn = this.getRefreshTokenExpiresIn();
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload as any, {
-        secret: this.getAccessTokenSecret(),
-        expiresIn: this.getAccessTokenExpiresIn(),
+        secret: accessTokenSecret,
+        expiresIn: accessTokenExpiresIn,
       }),
       this.jwtService.signAsync(payload as any, {
-        secret: this.getRefreshTokenSecret(),
-        expiresIn: this.getRefreshTokenExpiresIn(),
+        secret: refreshTokenSecret,
+        expiresIn: refreshTokenExpiresIn,
       }),
     ]);
 
@@ -260,9 +263,9 @@ export class PlatformAuthService {
       status: user.status,
       roles:
         user.platformUserRoles?.map((item) => ({
-          id: item.role.id,
-          key: item.role.key,
-          name: item.role.name,
+          id: item.platformRole.id,
+          key: item.platformRole.key,
+          name: item.platformRole.name,
         })) ?? [],
     };
   }
@@ -281,9 +284,9 @@ export class PlatformAuthService {
       status: user.status,
       roles:
         user.platformUserRoles?.map((item) => ({
-          id: item.role.id,
-          key: item.role.key,
-          name: item.role.name,
+          id: item.platformRole.id,
+          key: item.platformRole.key,
+          name: item.platformRole.name,
         })) ?? [],
     };
   }

@@ -1,0 +1,7 @@
+export enum VerticalTenantStatus {
+  PENDING = 'PENDING',
+  PROVISIONING = 'PROVISIONING',
+  PROVISIONED = 'PROVISIONED',
+  FAILED = 'FAILED',
+  SUSPENDED = 'SUSPENDED',
+}

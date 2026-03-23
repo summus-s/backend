@@ -12,11 +12,13 @@ import { UpdateCompanyVerticalDto } from './dto/update-company-vertical.dto';
 import { QueryCompanyVerticalsDto } from './dto/query-company-verticals.dto';
 import { SuspendCompanyVerticalDto } from './dto/suspend-company-vertical.dto';
 import { CancelCompanyVerticalDto } from './dto/cancel-company-vertical.dto';
+import { ActivateCompanyVerticalDto } from './dto/activate-company-vertical.dto';
+import { ReactivateCompanyVerticalDto } from './dto/reactivate-company-vertical.dto';
 import { CompanyVerticalStatus } from './enums/company-vertical-status.enum';
-import { ProvisioningStatus } from './enums/provisioning-status.enum';
 import { CompaniesService } from '../companies/companies.service';
 import { CompanyStatus } from '../companies/enums/company-status.enum';
 import { VerticalsService } from '../catalog/verticals/verticals.service';
+import { getPagination } from '../../common/utils/pagination.util';
 
 @Injectable()
 export class CompanyVerticalsService {
@@ -32,6 +34,29 @@ export class CompanyVerticalsService {
     return normalized ? normalized : null;
   }
 
+  private parseDate(value?: string | null): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    return new Date(value);
+  }
+
+  private validateDateRange(startsAt?: string | null, endsAt?: string | null) {
+    if (!startsAt || !endsAt) {
+      return;
+    }
+
+    const startDate = new Date(startsAt);
+    const endDate = new Date(endsAt);
+
+    if (endDate < startDate) {
+      throw new BadRequestException(
+        'La fecha de finalización no puede ser menor que la fecha de inicio',
+      );
+    }
+  }
+
   private async ensureCompanyAndVerticalAreValid(
     companyId: string,
     verticalId: string,
@@ -44,7 +69,19 @@ export class CompanyVerticalsService {
       );
     }
 
-    await this.verticalsService.findById(verticalId);
+    if (company.status === CompanyStatus.SUSPENDED) {
+      throw new BadRequestException(
+        'No puedes asociar un vertical a una empresa suspendida',
+      );
+    }
+
+    const vertical = await this.verticalsService.findById(verticalId);
+
+    if (!vertical.isActive) {
+      throw new BadRequestException(
+        'No puedes asociar una empresa a un vertical inactivo',
+      );
+    }
   }
 
   private async ensureUniqueCompanyVertical(
@@ -67,6 +104,8 @@ export class CompanyVerticalsService {
   }
 
   async create(createDto: CreateCompanyVerticalDto) {
+    this.validateDateRange(createDto.startsAt, createDto.endsAt);
+
     await this.ensureCompanyAndVerticalAreValid(
       createDto.companyId,
       createDto.verticalId,
@@ -81,11 +120,14 @@ export class CompanyVerticalsService {
       companyId: createDto.companyId,
       verticalId: createDto.verticalId,
       status: CompanyVerticalStatus.PENDING,
+      statusReason: null,
       planName: this.normalizeString(createDto.planName),
       billingCycle: createDto.billingCycle ?? null,
-      startsAt: createDto.startsAt ? new Date(createDto.startsAt) : null,
-      endsAt: createDto.endsAt ? new Date(createDto.endsAt) : null,
-      provisioningStatus: ProvisioningStatus.NOT_SENT,
+      startsAt: this.parseDate(createDto.startsAt),
+      endsAt: this.parseDate(createDto.endsAt),
+      activatedAt: null,
+      suspendedAt: null,
+      cancelledAt: null,
       notes: this.normalizeString(createDto.notes),
     });
 
@@ -93,10 +135,14 @@ export class CompanyVerticalsService {
   }
 
   async findAll(queryDto: QueryCompanyVerticalsDto) {
+    const { page, limit, skip } = getPagination(queryDto);
+
     const query = this.companyVerticalsRepo
       .createQueryBuilder('companyVertical')
       .leftJoinAndSelect('companyVertical.company', 'company')
-      .leftJoinAndSelect('companyVertical.vertical', 'vertical');
+      .leftJoinAndSelect('companyVertical.vertical', 'vertical')
+      .leftJoinAndSelect('companyVertical.verticalTenant', 'verticalTenant')
+      .leftJoinAndSelect('companyVertical.subscription', 'subscription');
 
     if (queryDto.companyId) {
       query.andWhere('companyVertical.companyId = :companyId', {
@@ -116,16 +162,11 @@ export class CompanyVerticalsService {
       });
     }
 
-    if (queryDto.provisioningStatus) {
-      query.andWhere('companyVertical.provisioningStatus = :provisioningStatus', {
-        provisioningStatus: queryDto.provisioningStatus,
-      });
-    }
-
     if (queryDto.search?.trim()) {
       query.andWhere(
         `(
           company.name ILIKE :search
+          OR company.legalName ILIKE :search
           OR vertical.name ILIKE :search
           OR vertical.key ILIKE :search
           OR companyVertical.planName ILIKE :search
@@ -135,8 +176,16 @@ export class CompanyVerticalsService {
     }
 
     query.orderBy('companyVertical.createdAt', 'DESC');
+    query.skip(skip).take(limit);
 
-    return query.getMany();
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findById(id: string) {
@@ -145,6 +194,9 @@ export class CompanyVerticalsService {
       relations: {
         company: true,
         vertical: true,
+        verticalTenant: true,
+        subscription: true,
+        invites: true,
       },
     });
 
@@ -162,6 +214,24 @@ export class CompanyVerticalsService {
       where: { companyId },
       relations: {
         vertical: true,
+        verticalTenant: true,
+        subscription: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+
+  async findByVerticalId(verticalId: string) {
+    await this.verticalsService.findById(verticalId);
+
+    return this.companyVerticalsRepo.find({
+      where: { verticalId },
+      relations: {
+        company: true,
+        verticalTenant: true,
+        subscription: true,
       },
       order: {
         createdAt: 'DESC',
@@ -172,6 +242,12 @@ export class CompanyVerticalsService {
   async update(id: string, updateDto: UpdateCompanyVerticalDto) {
     const companyVertical = await this.findById(id);
 
+    if (companyVertical.status === CompanyVerticalStatus.CANCELLED) {
+      throw new BadRequestException(
+        'No puedes editar una contratación cancelada',
+      );
+    }
+
     const nextCompanyId =
       updateDto.companyId !== undefined
         ? updateDto.companyId
@@ -181,6 +257,18 @@ export class CompanyVerticalsService {
       updateDto.verticalId !== undefined
         ? updateDto.verticalId
         : companyVertical.verticalId;
+
+    const nextStartsAt =
+      updateDto.startsAt !== undefined
+        ? updateDto.startsAt
+        : companyVertical.startsAt?.toISOString() ?? null;
+
+    const nextEndsAt =
+      updateDto.endsAt !== undefined
+        ? updateDto.endsAt
+        : companyVertical.endsAt?.toISOString() ?? null;
+
+    this.validateDateRange(nextStartsAt, nextEndsAt);
 
     await this.ensureCompanyAndVerticalAreValid(nextCompanyId, nextVerticalId);
 
@@ -207,15 +295,11 @@ export class CompanyVerticalsService {
     }
 
     if (updateDto.startsAt !== undefined) {
-      companyVertical.startsAt = updateDto.startsAt
-        ? new Date(updateDto.startsAt)
-        : null;
+      companyVertical.startsAt = this.parseDate(updateDto.startsAt);
     }
 
     if (updateDto.endsAt !== undefined) {
-      companyVertical.endsAt = updateDto.endsAt
-        ? new Date(updateDto.endsAt)
-        : null;
+      companyVertical.endsAt = this.parseDate(updateDto.endsAt);
     }
 
     if (updateDto.notes !== undefined) {
@@ -225,7 +309,7 @@ export class CompanyVerticalsService {
     return this.companyVerticalsRepo.save(companyVertical);
   }
 
-  async activate(id: string) {
+  async activate(id: string, activateDto: ActivateCompanyVerticalDto) {
     const companyVertical = await this.findById(id);
 
     if (companyVertical.status === CompanyVerticalStatus.CANCELLED) {
@@ -235,11 +319,14 @@ export class CompanyVerticalsService {
     }
 
     companyVertical.status = CompanyVerticalStatus.ACTIVE;
+    companyVertical.statusReason = this.normalizeString(activateDto.reason);
+    companyVertical.activatedAt = new Date();
+    companyVertical.suspendedAt = null;
 
     return this.companyVerticalsRepo.save(companyVertical);
   }
 
-  async suspend(id: string, _suspendDto: SuspendCompanyVerticalDto) {
+  async suspend(id: string, suspendDto: SuspendCompanyVerticalDto) {
     const companyVertical = await this.findById(id);
 
     if (companyVertical.status === CompanyVerticalStatus.CANCELLED) {
@@ -249,14 +336,41 @@ export class CompanyVerticalsService {
     }
 
     companyVertical.status = CompanyVerticalStatus.SUSPENDED;
+    companyVertical.statusReason = this.normalizeString(suspendDto.reason);
+    companyVertical.suspendedAt = new Date();
 
     return this.companyVerticalsRepo.save(companyVertical);
   }
 
-  async cancel(id: string, _cancelDto: CancelCompanyVerticalDto) {
+  async cancel(id: string, cancelDto: CancelCompanyVerticalDto) {
     const companyVertical = await this.findById(id);
 
+    if (companyVertical.status === CompanyVerticalStatus.CANCELLED) {
+      throw new BadRequestException(
+        'La contratación ya se encuentra cancelada',
+      );
+    }
+
     companyVertical.status = CompanyVerticalStatus.CANCELLED;
+    companyVertical.statusReason = this.normalizeString(cancelDto.reason);
+    companyVertical.cancelledAt = new Date();
+
+    return this.companyVerticalsRepo.save(companyVertical);
+  }
+
+  async reactivate(id: string, reactivateDto: ReactivateCompanyVerticalDto) {
+    const companyVertical = await this.findById(id);
+
+    if (companyVertical.status === CompanyVerticalStatus.CANCELLED) {
+      throw new BadRequestException(
+        'No puedes reactivar una contratación cancelada. Debes crear una nueva relación company-vertical',
+      );
+    }
+
+    companyVertical.status = CompanyVerticalStatus.ACTIVE;
+    companyVertical.statusReason = this.normalizeString(reactivateDto.reason);
+    companyVertical.activatedAt = new Date();
+    companyVertical.suspendedAt = null;
 
     return this.companyVerticalsRepo.save(companyVertical);
   }

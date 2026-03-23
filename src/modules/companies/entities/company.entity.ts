@@ -11,6 +11,7 @@ import {
 import { CompanyStatus } from '../enums/company-status.enum';
 import { CompanyContactEntity } from '../../company-contacts/entities/company-contact.entity';
 import { CompanyVerticalEntity } from '../../company-verticals/entities/company-vertical.entity';
+import { InviteEntity } from '../../invites/entities/invite.entity';
 
 @Entity('companies')
 @Index('UQ_companies_tax_id', ['taxId'], { unique: true })
@@ -60,6 +61,9 @@ export class CompanyEntity {
     (companyVertical) => companyVertical.company,
   )
   companyVerticals: CompanyVerticalEntity[];
+
+  @OneToMany(() => InviteEntity, (invite) => invite.company)
+  invites: InviteEntity[];
 
   @CreateDateColumn()
   createdAt: Date;

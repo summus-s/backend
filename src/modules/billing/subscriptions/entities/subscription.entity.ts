@@ -2,20 +2,22 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
-  OneToOne,
   ManyToOne,
+  OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  Index,
 } from 'typeorm';
 
 import { CompanyVerticalEntity } from '../../../company-verticals/entities/company-vertical.entity';
 import { PlanEntity } from '../../plans/entities/plan.entity';
+import { OrderEntity } from '../../orders/entities/order.entity';
 import { SubscriptionStatus } from '../enums/subscription-status.enum';
-import { BillingProvider } from '../enums/billing-provider.enum';
+import { BillingCycle } from '../../../company-verticals/enums/billing-cycle.enum';
 
-@Entity({ name: 'subscriptions' })
+@Entity('subscriptions')
 @Index(['companyVerticalId'], { unique: true })
 export class SubscriptionEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -24,18 +26,18 @@ export class SubscriptionEntity {
   @Column({ name: 'company_vertical_id', type: 'uuid' })
   companyVerticalId: string;
 
-  @Column({ name: 'plan_id', type: 'uuid' })
-  planId: string;
-
-  @OneToOne(() => CompanyVerticalEntity, (companyVertical) => companyVertical.subscription, {
-    nullable: false,
-    onDelete: 'CASCADE',
-  })
+  @OneToOne(
+    () => CompanyVerticalEntity,
+    (companyVertical) => companyVertical.subscription,
+    { onDelete: 'RESTRICT' },
+  )
   @JoinColumn({ name: 'company_vertical_id' })
   companyVertical: CompanyVerticalEntity;
 
+  @Column({ name: 'plan_id', type: 'uuid' })
+  planId: string;
+
   @ManyToOne(() => PlanEntity, (plan) => plan.subscriptions, {
-    nullable: false,
     onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'plan_id' })
@@ -44,30 +46,55 @@ export class SubscriptionEntity {
   @Column({
     type: 'enum',
     enum: SubscriptionStatus,
-    default: SubscriptionStatus.TRIAL,
+    default: SubscriptionStatus.PENDING,
   })
   status: SubscriptionStatus;
 
-  @Column({ name: 'current_period_start', type: 'timestamp' })
-  currentPeriodStart: Date;
+  @Column({ name: 'plan_code_snapshot', type: 'varchar', length: 60 })
+  planCodeSnapshot: string;
 
-  @Column({ name: 'current_period_end', type: 'timestamp' })
-  currentPeriodEnd: Date;
+  @Column({ name: 'plan_name_snapshot', type: 'varchar', length: 120 })
+  planNameSnapshot: string;
+
+  @Column({ name: 'price_snapshot', type: 'decimal', precision: 12, scale: 2 })
+  priceSnapshot: string;
+
+  @Column({ name: 'currency_snapshot', type: 'varchar', length: 3 })
+  currencySnapshot: string;
 
   @Column({
+    name: 'billing_cycle_snapshot',
     type: 'enum',
-    enum: BillingProvider,
+    enum: BillingCycle,
   })
-  provider: BillingProvider;
+  billingCycleSnapshot: BillingCycle;
 
-  @Column({ name: 'provider_customer_id', type: 'varchar', length: 120, nullable: true })
-  providerCustomerId: string | null;
+  @Column({ name: 'starts_at', type: 'timestamptz' })
+  startsAt: Date;
 
-  @Column({ name: 'provider_subscription_id', type: 'varchar', length: 120, nullable: true })
-  providerSubscriptionId: string | null;
+  @Column({ name: 'current_period_starts_at', type: 'timestamptz', nullable: true })
+  currentPeriodStartsAt: Date | null;
 
-  @Column({ name: 'canceled_at', type: 'timestamp', nullable: true })
-  canceledAt: Date | null;
+  @Column({ name: 'current_period_ends_at', type: 'timestamptz', nullable: true })
+  currentPeriodEndsAt: Date | null;
+
+  @Column({ name: 'cancel_at', type: 'timestamptz', nullable: true })
+  cancelAt: Date | null;
+
+  @Column({ name: 'cancelled_at', type: 'timestamptz', nullable: true })
+  cancelledAt: Date | null;
+
+  @Column({ name: 'auto_renew', type: 'boolean', default: true })
+  autoRenew: boolean;
+
+  @Column({ name: 'status_reason', type: 'varchar', length: 300, nullable: true })
+  statusReason: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
+
+  @OneToMany(() => OrderEntity, (order) => order.subscription)
+  orders: OrderEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
